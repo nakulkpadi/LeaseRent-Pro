@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lease Rent Calculator & Schedule Generator</title>
+    <!-- Tailwind CSS for clean UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hidden on screen, visible ONLY when printing */
+        .print-only-header {
+            display: none;
+        }
+
+        /* Clean watermark anchoring directly at the bottom center of the print container */
+        .print-bottom-watermark {
+            display: none;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #9ca3af !important; /* Visible light gray text */
+            letter-spacing: 0.05em;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 15mm 10mm 15mm 10mm;
+            }
+            
+            body { 
+                background-color: white !important; 
+                padding: 0 !important; 
+                margin: 0 !important; 
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Hide screen-specific elements */
+            .no-print { 
+                display: none !important; 
+            }
+            
+            /* Force reveal the bottom watermark on print layout */
+            .print-bottom-watermark {
+                display: block !important;
+            }
+            
+            /* Force reveal the dedicated print header */
+            .print-only-header {
+                display: block !important;
+                width: 100% !important;
+                margin-bottom: 20px !important;
+                border-bottom: 2px solid #14532d !important;
+                padding-bottom: 12px !important;
+            }
+
+            /* Expand the table container to use the full page width */
+            .print-full-width {
+                width: 100% !important;
+                grid-column: span 3 / span 3 !important;
+            }
+
+            /* Prevent table rows from awkwardly breaking across pages */
+            tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* Forces the footer calculations to print ONLY on the final page */
+            tfoot {
+                display: table-row-group !important;
+            }
+
+            /* Tightly pack table data for paper layout */
+            table { 
+                font-size: 11px !important; 
+                width: 100% !important;
+                table-layout: fixed !important;
+                color: #000000 !important;
+            }
+            
+            th, td {
+                padding: 5px 6px !important;
+                word-wrap: break-word !important;
+                border: 1px solid #6b7280 !important; /* Force clean gray borders on paper */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col justify-between py-8 px-4 font-sans text-gray-800 select-none">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 md:p-8 border border-gray-200 w-full mb-auto relative">
+        
+        <!-- DEDICATED PRINT-ONLY HEADER -->
+        <div class="print-only-header">
+            <h1 class="text-2xl font-bold text-emerald-900" id="actualPrintFarmer" style="color: #064e3b !important;">Lease Rent Schedule: Rajesh Bhai</h1>
+            <div style="margin-top: 5px; font-size: 14px; font-weight: 600; color: #047857 !important;">
+                <span id="actualPrintSurvey">Survey Number: 142/A</span>
+                <span style="margin-left: 15px; margin-right: 15px;">|</span>
+                <span id="actualPrintLocation">Location Context: Village: Bhavanipar, Tal. Abdasa, Dist. Kutch</span>
+            </div>
+        </div>
+
+        <!-- SCREEN HEADER SECTION (Hidden on Print) -->
+        <div class="border-b border-gray-200 pb-5 mb-6 text-center md:text-left no-print">
+            <h1 class="text-2xl font-bold text-emerald-900 tracking-tight" id="screenHeaderFarmer">Lease Rent Schedule: Rajesh Bhai</h1>
+            <div class="flex flex-col md:flex-row md:space-x-6 text-sm text-emerald-800 font-medium mt-1.5 justify-center md:justify-start">
+                <p id="screenHeaderSurvey">Survey Number: 142/A</p>
+                <p class="hidden md:block text-emerald-300">|</p>
+                <p id="screenDisplayLocation">Location Context: Village: Bhavanipar, Tal. Abdasa, Dist. Kutch</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Sidebar Inputs Column (Hidden on Print) -->
+            <div class="lg:col-span-1 bg-emerald-50/50 p-5 rounded-lg border border-emerald-100 h-fit space-y-4 no-print">
+                <h2 class="text-lg font-semibold text-emerald-900 border-b border-emerald-100 pb-2">1. INPUT PARAMETERS</h2>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Farmer Name</label>
+                    <input type="text" id="farmerName" value="Rajesh Bhai" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-amber-50/50">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Survey Number</label>
+                        <input type="text" id="surveyNo" value="142/A" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-amber-50/50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Land Area (Acres)</label>
+                        <input type="number" id="totalAcres" value="6.0000" step="0.0001" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-green-50 font-semibold text-emerald-800">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Base Yearly Rent (Per Acre)</label>
+                    <input type="number" id="baseRent" value="55000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Escalation %</label>
+                        <input type="number" id="escRate" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Frequency (Years)</label>
+                        <input type="number" id="escFreq" value="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <div class="border-t border-emerald-100 pt-3">
+                    <h3 class="text-xs font-bold text-emerald-900 uppercase mb-2">Location Context Settings</h3>
+                    <div class="space-y-2">
+                        <input type="text" id="village" value="Bhavanipar" placeholder="Village" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md">
+                        <input type="text" id="taluka" value="Abdasa" placeholder="Taluka" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md">
+                        <input type="text" id="district" value="Kutch" placeholder="District" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md">
+                    </div>
+                </div>
+
+                <button onclick="window.print()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium py-2.5 px-4 rounded-md transition duration-150 shadow-sm mt-2 font-semibold">
+                    Print / Save as PDF
+                </button>
+            </div>
+
+            <!-- Table / Schedule Column (Becomes Full Width on Print) -->
+            <div id="tableContainer" class="lg:col-span-2 overflow-x-auto print-full-width">
+                <h2 class="text-lg font-semibold text-emerald-900 mb-4 no-print">2. 30-YEAR LEASE RENT SCHEDULE</h2>
+                
+                <table class="w-full border-collapse border border-gray-300 text-sm whitespace-nowrap" id="scheduleTable">
+                    <thead>
+                        <tr class="bg-emerald-900 text-white font-semibold">
+                            <th class="border border-gray-300 px-3 py-2 text-center w-[6%]">YEAR</th>
+                            <th class="border border-gray-300 px-3 py-2 text-right w-[10%]">ACRE</th>
+                            <th class="border border-gray-300 px-3 py-2 text-right w-[15%]">YEARLY RENT<br><span class="text-xs font-normal opacity-80">(PER ACRE)</span></th>
+                            <th class="border border-gray-300 px-3 py-2 text-center w-[10%]">INCREMENT<br><span class="text-xs font-normal opacity-80">%</span></th>
+                            <th class="border border-gray-300 px-3 py-2 text-right w-[15%]">INCREMENT AMT<br><span class="text-xs font-normal opacity-80">(PER ACRE)</span></th>
+                            <th class="border border-gray-300 px-3 py-2 text-right w-[15%]">ANNUAL RENT<br><span class="text-xs font-normal opacity-80">(TOTAL)</span></th>
+                            <th class="border border-gray-300 px-3 py-2 text-right text-red-200 w-[14%]">TDS (10%)<br><span class="text-xs font-normal opacity-80">IF &gt; 2.4L</span></th>
+                            <th class="border border-gray-300 px-3 py-2 text-right w-[15%]">DIRECT FARMER<br><span class="text-xs font-normal opacity-80">PAYABLE</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Content injected via JavaScript -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-emerald-100 font-bold text-emerald-900 border-t-2 border-emerald-900">
+                            <td colspan="5" class="border border-gray-300 px-3 py-2 text-left tracking-wide">TOTAL RENT</td>
+                            <td id="totalRent" class="border border-gray-300 px-3 py-2 text-right">0</td>
+                            <td id="totalTds" class="border border-gray-300 px-3 py-2 text-right text-red-700">0</td>
+                            <td id="totalPayable" class="border border-gray-300 px-3 py-2 text-right bg-emerald-200/50">0</td>
+                        </tr>
+                        <tr class="bg-emerald-100 font-bold text-emerald-900">
+                            <td colspan="5" class="border border-gray-300 px-3 py-2 text-left tracking-wide">Avg. Rent</td>
+                            <td id="avgRent" class="border border-gray-300 px-3 py-2 text-right">0</td>
+                            <td colspan="2" class="border border-gray-300 bg-gray-50/50"></td>
+                        </tr>
+                        <tr class="bg-emerald-100 font-bold text-emerald-900">
+                            <td colspan="5" class="border border-gray-300 px-3 py-2 text-left tracking-wide">Double Rent</td>
+                            <td id="doubleRent" class="border border-gray-300 px-3 py-2 text-right">0</td>
+                            <td colspan="2" class="border border-gray-300 bg-gray-50/50"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Repositioned Print Watermark safely grouped underneath the structural dataset -->
+                <div class="print-bottom-watermark">App created by - Nakul Kapdi</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- App Creator Credit Footer (Screen View Only) -->
+    <footer id="appLockFooter" class="text-center py-4 text-xs font-bold text-gray-400 tracking-wide mt-8 border-t border-gray-200 w-full select-none no-print">
+        App created by - Nakul Kapdi
+    </footer>
+
+    <!-- App Engine Logic & Code Hardening Safeguards -->
+    <script>
+        const inputs = ['farmerName', 'surveyNo', 'totalAcres', 'baseRent', 'escRate', 'escFreq', 'village', 'taluka', 'district'];
+        
+        /* Anti-Tampering Safeguard Logic */
+        document.addEventListener('contextmenu', event => event.preventDefault()); // Block Right-Clicking Inspect Element
+        
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) { return false; } // Block F12 Developer Console Key
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { return false; } // Block Ctrl+Shift+I
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) { return false; } // Block Ctrl+Shift+C
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { return false; } // Block Ctrl+Shift+J
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { return false; } // Block Ctrl+U View Source
+        };
+
+        function formatNum(num) {
+            return Math.round(num).toLocaleString('en-IN');
+        }
+
+        function calculateSchedule() {
+            // Self-healing check: automatically repairs the footer value if edited in memory
+            const footerEl = document.getElementById('appLockFooter');
+            if (!footerEl || footerEl.innerText !== "App created by - Nakul Kapdi") {
+                location.reload(); // Hard resets app execution if tampering detected
+                return;
+            }
+
+            // Read Inputs
+            const farmerName = document.getElementById('farmerName').value;
+            const surveyNo = document.getElementById('surveyNo').value;
+            const village = document.getElementById('village').value;
+            const taluka = document.getElementById('taluka').value;
+            const district = document.getElementById('district').value;
+            
+            // Sync View Layout Elements
+            document.getElementById('screenHeaderFarmer').innerText = `Lease Rent Schedule: ${farmerName}`;
+            document.getElementById('screenHeaderSurvey').innerText = `Survey Number: ${surveyNo}`;
+            document.getElementById('screenDisplayLocation').innerText = `Location Context: Village: ${village}, Tal. ${taluka}, Dist. ${district}`;
+
+            document.getElementById('actualPrintFarmer').innerText = `Lease Rent Schedule: ${farmerName}`;
+            document.getElementById('actualPrintSurvey').innerText = `Survey Number: ${surveyNo}`;
+            document.getElementById('actualPrintLocation').innerText = `Location Context: Village: ${village}, Tal. ${taluka}, Dist. ${district}`;
+
+            const acres = parseFloat(document.getElementById('totalAcres').value) || 0;
+            const baseRent = parseFloat(document.getElementById('baseRent').value) || 0;
+            const escRate = parseFloat(document.getElementById('escRate').value) || 0;
+            const escFreq = parseInt(document.getElementById('escFreq').value) || 3;
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            let currentRentPerAcre = baseRent;
+            let runningTotalRent = 0;
+            let runningTotalTds = 0;
+            let runningTotalPayable = 0;
+
+            for (let year = 1; year <= 30; year++) {
+                let incPercent = 0;
+                let incAmtPerAcre = 0;
+
+                if (year > 1 && (year - 1) % escFreq === 0) {
+                    incPercent = escRate;
+                    incAmtPerAcre = currentRentPerAcre * (escRate / 100);
+                    currentRentPerAcre += incAmtPerAcre;
+                }
+
+                const annualTotalRent = currentRentPerAcre * acres;
+                const tdsAmt = (annualTotalRent > 240000) ? (annualTotalRent * 0.10) : 0;
+                const directFarmerPayable = annualTotalRent - tdsAmt;
+
+                runningTotalRent += annualTotalRent;
+                runningTotalTds += tdsAmt;
+                runningTotalPayable += directFarmerPayable;
+
+                const bgRowClass = (year % 2 === 0) ? 'bg-gray-50' : 'bg-white';
+
+                const row = document.createElement('tr');
+                row.className = `${bgRowClass} hover:bg-emerald-50/40 transition-colors`;
+                
+                row.innerHTML = `
+                    <td class="border border-gray-300 px-3 py-1.5 text-center font-medium">${year}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right text-gray-600">${acres.toFixed(4)}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right">${formatNum(currentRentPerAcre)}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-center ${incPercent > 0 ? 'text-emerald-600 font-bold' : 'text-gray-400'}">${incPercent}%</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right text-gray-500">${formatNum(incAmtPerAcre)}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right font-semibold text-gray-900">${formatNum(annualTotalRent)}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right text-red-600 font-medium">${tdsAmt > 0 ? formatNum(tdsAmt) : '0'}</td>
+                    <td class="border border-gray-300 px-3 py-1.5 text-right font-bold text-slate-800 bg-sky-50/40">${formatNum(directFarmerPayable)}</td>
+                `;
+                tbody.appendChild(row);
+            }
+
+            document.getElementById('totalRent').innerText = formatNum(runningTotalRent);
+            document.getElementById('totalTds').innerText = formatNum(runningTotalTds);
+            document.getElementById('totalPayable').innerText = formatNum(runningTotalPayable);
+            
+            const average = runningTotalRent / 30;
+            document.getElementById('avgRent').innerText = formatNum(average);
+            document.getElementById('doubleRent').innerText = formatNum(average * 2);
+        }
+
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateSchedule);
+        });
+
+        // Run security checks on dynamic modifications continuously
+        setInterval(() => {
+            const footerEl = document.getElementById('appLockFooter');
+            if (!footerEl || footerEl.innerText !== "App created by - Nakul Kapdi") {
+                document.body.innerHTML = "<h1>Security Protection Triggered: Code Modification Prohibited.</h1>";
+            }
+        }, 1500);
+
+        calculateSchedule();
+    </script>
+</body>
+</html>
