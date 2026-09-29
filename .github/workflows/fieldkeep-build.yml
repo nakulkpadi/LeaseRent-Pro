@@ -1,0 +1,31 @@
+name: Build FieldKeep APK
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reassemble v2 source
+        run: |
+          cat fieldkeep-v2-src/big_* > fieldkeep-source.b64
+          base64 -d fieldkeep-source.b64 > fieldkeep-source.zip
+          unzip -q fieldkeep-source.zip
+          sed -i 's/applicationId = "com.nakuul.fieldkeep"/applicationId = "com.nakuul.fieldkeep.v2"/' FieldKeepMVP/app/build.gradle.kts
+          sed -i 's/android:label="FieldKeep"/android:label="FieldKeep v2"/' FieldKeepMVP/app/src/main/AndroidManifest.xml
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build debug APK
+        working-directory: FieldKeepMVP
+        run: gradle :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FieldKeep-v2-test-apk
+          path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
