@@ -16,6 +16,72 @@ jobs:
           cat waymark-src/part_* > waymark-source.b64
           base64 -d waymark-source.b64 > waymark-source.zip
           unzip -q waymark-source.zip
+      - name: Apply Android 15 safe-area padding fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          ui = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/Ui.java")
+          s = ui.read_text()
+          s = s.replace(
+              "import android.widget.TextView;\n",
+              "import android.widget.TextView;\n\nimport androidx.core.graphics.Insets;\nimport androidx.core.view.ViewCompat;\nimport androidx.core.view.WindowInsetsCompat;\n"
+          )
+          needle = """    public static int dp(Context c, int v) {
+              return Math.round(v * c.getResources().getDisplayMetrics().density);
+          }
+          """
+          method = needle + """
+              public static void applySystemBarInsets(View view, int extraTopDp, int extraBottomDp) {
+                  final int left = view.getPaddingLeft();
+                  final int top = view.getPaddingTop();
+                  final int right = view.getPaddingRight();
+                  final int bottom = view.getPaddingBottom();
+                  final int extraTop = dp(view.getContext(), extraTopDp);
+                  final int extraBottom = dp(view.getContext(), extraBottomDp);
+                  ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+                      Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                      v.setPadding(left, top + bars.top + extraTop, right, bottom + bars.bottom + extraBottom);
+                      return insets;
+                  });
+                  ViewCompat.requestApplyInsets(view);
+              }
+          """
+          if "applySystemBarInsets" not in s:
+              s = s.replace(needle, method)
+          ui.write_text(s)
+
+          main = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java")
+          s = main.read_text()
+          s = s.replace(
+              "getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);",
+              "getWindow().setNavigationBarColor(Ui.BG);\n        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);"
+          )
+          s = s.replace(
+              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);",
+              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);Ui.applySystemBarInsets(page,6,8);"
+          )
+          main.write_text(s)
+
+          site = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/SiteActivity.java")
+          s = site.read_text()
+          s = s.replace(
+              "super.onCreate(state);getWindow().setStatusBarColor(Ui.BG);getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);",
+              "super.onCreate(state);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);"
+          )
+          s = s.replace(
+              "ScrollView scroll=new ScrollView(this);LinearLayout root=Ui.column(this);scroll.addView(root);",
+              "ScrollView scroll=new ScrollView(this);scroll.setClipToPadding(false);Ui.applySystemBarInsets(scroll,6,12);LinearLayout root=Ui.column(this);scroll.addView(root);"
+          )
+          site.write_text(s)
+
+          gradle = Path("FieldKeepMVP/app/build.gradle.kts")
+          s = gradle.read_text().replace("versionCode = 3","versionCode = 4").replace(
+              'versionName = "0.3-waymark-test"',
+              'versionName = "0.4-waymark-padding-fix"'
+          )
+          gradle.write_text(s)
+          PY
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
@@ -24,5 +90,5 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v3-test-apk
+          name: Waymark-v4-padding-test-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
