@@ -21,36 +21,6 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          ui = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/Ui.java")
-          s = ui.read_text()
-          s = s.replace(
-              "import android.widget.TextView;\n",
-              "import android.widget.TextView;\n\nimport androidx.core.graphics.Insets;\nimport androidx.core.view.ViewCompat;\nimport androidx.core.view.WindowInsetsCompat;\n"
-          )
-          needle = """    public static int dp(Context c, int v) {
-              return Math.round(v * c.getResources().getDisplayMetrics().density);
-          }
-          """
-          method = needle + """
-              public static void applySystemBarInsets(View view, int extraTopDp, int extraBottomDp) {
-                  final int left = view.getPaddingLeft();
-                  final int top = view.getPaddingTop();
-                  final int right = view.getPaddingRight();
-                  final int bottom = view.getPaddingBottom();
-                  final int extraTop = dp(view.getContext(), extraTopDp);
-                  final int extraBottom = dp(view.getContext(), extraBottomDp);
-                  ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
-                      Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                      v.setPadding(left, top + bars.top + extraTop, right, bottom + bars.bottom + extraBottom);
-                      return insets;
-                  });
-                  ViewCompat.requestApplyInsets(view);
-              }
-          """
-          if "applySystemBarInsets" not in s:
-              s = s.replace(needle, method)
-          ui.write_text(s)
-
           main = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java")
           s = main.read_text()
           s = s.replace(
@@ -59,7 +29,7 @@ jobs:
           )
           s = s.replace(
               "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);",
-              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);Ui.applySystemBarInsets(page,6,8);"
+              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(page,(v,insets)->{androidx.core.graphics.Insets bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(0,bars.top+Ui.dp(this,6),0,bars.bottom+Ui.dp(this,8));return insets;});androidx.core.view.ViewCompat.requestApplyInsets(page);"
           )
           main.write_text(s)
 
@@ -71,7 +41,7 @@ jobs:
           )
           s = s.replace(
               "ScrollView scroll=new ScrollView(this);LinearLayout root=Ui.column(this);scroll.addView(root);",
-              "ScrollView scroll=new ScrollView(this);scroll.setClipToPadding(false);Ui.applySystemBarInsets(scroll,6,12);LinearLayout root=Ui.column(this);scroll.addView(root);"
+              "ScrollView scroll=new ScrollView(this);scroll.setClipToPadding(false);androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll,(v,insets)->{androidx.core.graphics.Insets bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(0,bars.top+Ui.dp(this,6),0,bars.bottom+Ui.dp(this,12));return insets;});androidx.core.view.ViewCompat.requestApplyInsets(scroll);LinearLayout root=Ui.column(this);scroll.addView(root);"
           )
           site.write_text(s)
 
