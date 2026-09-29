@@ -1,0 +1,64 @@
+name: Build Waymark APK
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reassemble source
+        run: |
+          cat waymark-src/part_* > waymark-source.b64
+          base64 -d waymark-source.b64 > waymark-source.zip
+          unzip -q waymark-source.zip
+      - name: Apply Android 15 safe-area padding fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          main = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java")
+          s = main.read_text()
+          s = s.replace(
+              "getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);",
+              "getWindow().setNavigationBarColor(Ui.BG);\n        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);"
+          )
+          s = s.replace(
+              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);",
+              "page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(page,(v,insets)->{androidx.core.graphics.Insets bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(0,bars.top+Ui.dp(this,6),0,bars.bottom+Ui.dp(this,8));return insets;});androidx.core.view.ViewCompat.requestApplyInsets(page);"
+          )
+          main.write_text(s)
+
+          site = Path("FieldKeepMVP/app/src/main/java/com/nakuul/fieldkeep/SiteActivity.java")
+          s = site.read_text()
+          s = s.replace(
+              "super.onCreate(state);getWindow().setStatusBarColor(Ui.BG);getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);",
+              "super.onCreate(state);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);getWindow().getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);"
+          )
+          s = s.replace(
+              "ScrollView scroll=new ScrollView(this);LinearLayout root=Ui.column(this);scroll.addView(root);",
+              "ScrollView scroll=new ScrollView(this);scroll.setClipToPadding(false);androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll,(v,insets)->{androidx.core.graphics.Insets bars=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars());v.setPadding(0,bars.top+Ui.dp(this,6),0,bars.bottom+Ui.dp(this,12));return insets;});androidx.core.view.ViewCompat.requestApplyInsets(scroll);LinearLayout root=Ui.column(this);scroll.addView(root);"
+          )
+          site.write_text(s)
+
+          gradle = Path("FieldKeepMVP/app/build.gradle.kts")
+          s = gradle.read_text().replace("versionCode = 3","versionCode = 4").replace(
+              'versionName = "0.3-waymark-test"',
+              'versionName = "0.4-waymark-padding-fix"'
+          )
+          gradle.write_text(s)
+          PY
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build debug APK
+        working-directory: FieldKeepMVP
+        run: gradle :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Waymark-v4-padding-test-apk
+          path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
