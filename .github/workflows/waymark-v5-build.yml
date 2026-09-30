@@ -76,6 +76,14 @@ jobs:
           done
           file "$D"/ic_pack_*.png
 
+      - name: Package reconstructed v8 source
+        run: zip -qr Waymark-v8-reconstructed-source.zip FieldKeepMVP
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Waymark-v8-reconstructed-source
+          path: Waymark-v8-reconstructed-source.zip
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
