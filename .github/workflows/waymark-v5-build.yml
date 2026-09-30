@@ -70,7 +70,7 @@ jobs:
 
       - name: Install user PNG icon pack
         run: |
-          test "$(wc -c < waymark-v8-icons/icons.zip.b64)" -eq 15144
+          test "$(wc -c < waymark-v8-icons/icons.zip.b64)" -eq 19964
           base64 -d waymark-v8-icons/icons.zip.b64 > waymark-icons.zip
           rm -rf /tmp/waymark-icons
           mkdir -p /tmp/waymark-icons
