@@ -1,0 +1,31 @@
+name: Build Waymark v5 APK
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Reassemble Waymark v5 source
+        run: |
+          cat waymark-v5-src/part_* > waymark-v5-source.b64
+          echo "Base64 chars: $(wc -c < waymark-v5-source.b64)"
+          base64 -d waymark-v5-source.b64 > Waymark-v5-source.zip
+          unzip -t Waymark-v5-source.zip
+          unzip -q Waymark-v5-source.zip
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build debug APK
+        working-directory: FieldKeepMVP
+        run: gradle :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Waymark-v5-functional-apk
+          path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
