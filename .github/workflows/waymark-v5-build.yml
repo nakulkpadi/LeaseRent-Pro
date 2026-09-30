@@ -8,29 +8,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - name: Reassemble Waymark v5 source
+
+      - name: Reassemble v3 baseline
         run: |
-          : > waymark-v5-source.b64
-          head -c 19999 waymark-v5-src/part_00 >> waymark-v5-source.b64
-          head -c 16001 waymark-v5-src/part_01 >> waymark-v5-source.b64
-          head -c 4171 waymark-v5-src/part_02 >> waymark-v5-source.b64
-          head -c 13829 waymark-v5-src/part_02b >> waymark-v5-source.b64
-          head -c 33479 waymark-v5-src/part_03 >> waymark-v5-source.b64
-          printf 'A' >> waymark-v5-source.b64
-          test "$(wc -c < waymark-v5-source.b64)" -eq 87480
-          base64 -d waymark-v5-source.b64 > Waymark-v5-source.zip
-          unzip -t Waymark-v5-source.zip
-          unzip -q Waymark-v5-source.zip
+          mkdir -p baseline
+          : > baseline/v3-source.b64
+          for f in part_00 part_01 part_02a part_02b part_03a part_03b; do
+            curl -fsSL "https://raw.githubusercontent.com/nakulkpadi/LeaseRent-Pro/waymark-v3-build/waymark-src/$f" >> baseline/v3-source.b64
+          done
+          base64 -d baseline/v3-source.b64 > baseline/v3-source.zip
+          unzip -t baseline/v3-source.zip
+          unzip -q baseline/v3-source.zip
+
+      - name: Apply v5 functional patch
+        run: |
+          cat waymark-v5-patch/part_* > v3-to-v5.patch.gz.b64
+          test "$(wc -c < v3-to-v5.patch.gz.b64)" -eq 35004
+          base64 -d v3-to-v5.patch.gz.b64 > v3-to-v5.patch.gz
+          gunzip -c v3-to-v5.patch.gz > v3-to-v5.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v3-to-v5.patch
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+
       - name: Build debug APK
         working-directory: FieldKeepMVP
         run: gradle :app:assembleDebug --stacktrace
+
       - uses: actions/upload-artifact@v4
         with:
           name: Waymark-v5-functional-apk
