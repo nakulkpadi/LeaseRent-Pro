@@ -1,4 +1,4 @@
-name: Build Waymark v5 APK
+name: Build Waymark v6 APK
 on:
   pull_request:
     branches: [main]
@@ -33,13 +33,20 @@ jobs:
           cd FieldKeepMVP
           patch -p1 < ../v3-to-v5.patch
 
-      - name: Package reconstructed v5 source
-        run: zip -qr Waymark-v5-reconstructed-source.zip FieldKeepMVP
+      - name: Apply v6 UI upgrade
+        run: |
+          cat waymark-v6-patch/part_* > v5-to-v6.patch.gz.b64
+          test "$(wc -c < v5-to-v6.patch.gz.b64)" -eq 42852
+          base64 -d v5-to-v6.patch.gz.b64 > v5-to-v6.patch.gz
+          gunzip -c v5-to-v6.patch.gz > v5-to-v6.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v5-to-v6.patch
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Waymark-v5-reconstructed-source
-          path: Waymark-v5-reconstructed-source.zip
+      - name: Install supplied Waymark icon
+        run: |
+          test "$(wc -c < waymark-v6-icon/waymark_icon.jpg.b64)" -eq 13452
+          rm -f FieldKeepMVP/app/src/main/res/drawable/waymark_icon.png
+          base64 -d waymark-v6-icon/waymark_icon.jpg.b64 > FieldKeepMVP/app/src/main/res/drawable/waymark_icon.jpg
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -51,5 +58,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v5-functional-apk
+          name: Waymark-v6-ui-upgrade-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
