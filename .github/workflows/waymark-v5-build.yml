@@ -1,0 +1,106 @@
+name: Build Waymark v9 APK
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Reassemble v3 baseline
+        run: |
+          mkdir -p baseline
+          : > baseline/v3-source.b64
+          for f in part_00 part_01 part_02a part_02b part_03a part_03b; do
+            curl -fsSL "https://raw.githubusercontent.com/nakulkpadi/LeaseRent-Pro/waymark-v3-build/waymark-src/$f" >> baseline/v3-source.b64
+          done
+          base64 -d baseline/v3-source.b64 > baseline/v3-source.zip
+          unzip -t baseline/v3-source.zip
+          unzip -q baseline/v3-source.zip
+
+      - name: Apply v5 functional patch
+        run: |
+          cat waymark-v5-patch/part_* > v3-to-v5.patch.gz.b64
+          test "$(wc -c < v3-to-v5.patch.gz.b64)" -eq 35004
+          base64 -d v3-to-v5.patch.gz.b64 > v3-to-v5.patch.gz
+          gunzip -c v3-to-v5.patch.gz > v3-to-v5.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v3-to-v5.patch
+
+      - name: Apply v6 UI upgrade
+        run: |
+          : > v5-to-v6.patch.gz.b64
+          head -c 16000 waymark-v6-patch/part_00 >> v5-to-v6.patch.gz.b64
+          cat waymark-v6-patch/part_01 >> v5-to-v6.patch.gz.b64
+          cat waymark-v6-patch/part_02 >> v5-to-v6.patch.gz.b64
+          test "$(wc -c < v5-to-v6.patch.gz.b64)" -eq 42852
+          base64 -d v5-to-v6.patch.gz.b64 > v5-to-v6.patch.gz
+          gunzip -c v5-to-v6.patch.gz > v5-to-v6.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v5-to-v6.patch
+
+      - name: Install supplied Waymark icon
+        run: |
+          test "$(wc -c < waymark-v6-icon/waymark_icon.jpg.b64)" -eq 13452
+          rm -f FieldKeepMVP/app/src/main/res/drawable/waymark_icon.png
+          base64 -d waymark-v6-icon/waymark_icon.jpg.b64 > FieldKeepMVP/app/src/main/res/drawable/waymark_icon.jpg
+
+      - name: Apply v7 corrections
+        run: |
+          head -c 18004 waymark-v7-patch/part_00 > v6-to-v7.patch.gz.b64
+          test "$(wc -c < v6-to-v7.patch.gz.b64)" -eq 18004
+          base64 -d v6-to-v7.patch.gz.b64 > v6-to-v7.patch.gz
+          gunzip -c v6-to-v7.patch.gz > v6-to-v7.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v6-to-v7.patch
+
+      - name: Apply v8 corrections
+        run: |
+          test "$(wc -c < waymark-v8-patch/v7-to-v8.patch.gz.b64)" -eq 12336
+          base64 -d waymark-v8-patch/v7-to-v8.patch.gz.b64 > v7-to-v8.patch.gz
+          gunzip -c v7-to-v8.patch.gz > v7-to-v8.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v7-to-v8.patch
+
+      - name: Install user PNG icon pack
+        run: |
+          D=FieldKeepMVP/app/src/main/res/drawable
+          for icon in archive camera_flip create_label deleted drawing_note help image_note land_site note reminders settings voice_note; do
+            base64 -d "waymark-v8-icons/individual/ic_${icon}.png.b64" > "$D/ic_pack_${icon}.png"
+          done
+          file "$D"/ic_pack_*.png
+
+      - name: Apply v9 UI and camera corrections
+        run: |
+          test "$(wc -c < waymark-v9-patch/v8-to-v9.patch.gz.b64)" -eq 17280
+          base64 -d waymark-v9-patch/v8-to-v9.patch.gz.b64 > v8-to-v9.patch.gz
+          gunzip -c v8-to-v9.patch.gz > v8-to-v9.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v8-to-v9.patch
+
+      - name: Package reconstructed v9 source
+        run: zip -qr Waymark-v9-reconstructed-source.zip FieldKeepMVP
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Waymark-v9-reconstructed-source
+          path: Waymark-v9-reconstructed-source.zip
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build debug APK
+        working-directory: FieldKeepMVP
+        run: gradle :app:assembleDebug --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Waymark-v9-ui-corrections-apk
+          path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
