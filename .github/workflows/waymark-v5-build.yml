@@ -14,8 +14,14 @@ jobs:
           java-version: '17'
       - name: Reassemble Waymark v5 source
         run: |
-          cat waymark-v5-src/part_* > waymark-v5-source.b64
-          echo "Base64 chars: $(wc -c < waymark-v5-source.b64)"
+          : > waymark-v5-source.b64
+          head -c 19999 waymark-v5-src/part_00 >> waymark-v5-source.b64
+          head -c 16001 waymark-v5-src/part_01 >> waymark-v5-source.b64
+          head -c 4171 waymark-v5-src/part_02 >> waymark-v5-source.b64
+          head -c 13829 waymark-v5-src/part_02b >> waymark-v5-source.b64
+          head -c 33479 waymark-v5-src/part_03 >> waymark-v5-source.b64
+          printf 'A' >> waymark-v5-source.b64
+          test "$(wc -c < waymark-v5-source.b64)" -eq 87480
           base64 -d waymark-v5-source.b64 > Waymark-v5-source.zip
           unzip -t Waymark-v5-source.zip
           unzip -q Waymark-v5-source.zip
