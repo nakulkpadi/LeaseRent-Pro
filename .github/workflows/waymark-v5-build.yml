@@ -35,7 +35,10 @@ jobs:
 
       - name: Apply v6 UI upgrade
         run: |
-          cat waymark-v6-patch/part_* > v5-to-v6.patch.gz.b64
+          : > v5-to-v6.patch.gz.b64
+          head -c 16000 waymark-v6-patch/part_00 >> v5-to-v6.patch.gz.b64
+          cat waymark-v6-patch/part_01 >> v5-to-v6.patch.gz.b64
+          cat waymark-v6-patch/part_02 >> v5-to-v6.patch.gz.b64
           test "$(wc -c < v5-to-v6.patch.gz.b64)" -eq 42852
           base64 -d v5-to-v6.patch.gz.b64 > v5-to-v6.patch.gz
           gunzip -c v5-to-v6.patch.gz > v5-to-v6.patch
