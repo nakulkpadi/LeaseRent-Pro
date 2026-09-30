@@ -1,4 +1,4 @@
-name: Build Waymark v7 APK
+name: Build Waymark v8 APK
 on:
   pull_request:
     branches: [main]
@@ -60,13 +60,34 @@ jobs:
           cd FieldKeepMVP
           patch -p1 < ../v6-to-v7.patch
 
-      - name: Package reconstructed v7 source
-        run: zip -qr Waymark-v7-reconstructed-source.zip FieldKeepMVP
+      - name: Apply v8 corrections
+        run: |
+          test "$(wc -c < waymark-v8-patch/v7-to-v8.patch.gz.b64)" -eq 12336
+          base64 -d waymark-v8-patch/v7-to-v8.patch.gz.b64 > v7-to-v8.patch.gz
+          gunzip -c v7-to-v8.patch.gz > v7-to-v8.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v7-to-v8.patch
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Waymark-v7-reconstructed-source
-          path: Waymark-v7-reconstructed-source.zip
+      - name: Install user PNG icon pack
+        run: |
+          test "$(wc -c < waymark-v8-icons/icons.zip.b64)" -eq 15144
+          base64 -d waymark-v8-icons/icons.zip.b64 > waymark-icons.zip
+          rm -rf /tmp/waymark-icons
+          mkdir -p /tmp/waymark-icons
+          unzip -q waymark-icons.zip -d /tmp/waymark-icons
+          D=FieldKeepMVP/app/src/main/res/drawable
+          cp /tmp/waymark-icons/ic_archive.png "$D/ic_pack_archive.png"
+          cp /tmp/waymark-icons/ic_camera_flip.png "$D/ic_pack_camera_flip.png"
+          cp /tmp/waymark-icons/ic_create_label.png "$D/ic_pack_create_label.png"
+          cp /tmp/waymark-icons/ic_deleted.png "$D/ic_pack_deleted.png"
+          cp /tmp/waymark-icons/ic_drawing_note.png "$D/ic_pack_drawing_note.png"
+          cp /tmp/waymark-icons/ic_help.png "$D/ic_pack_help.png"
+          cp /tmp/waymark-icons/ic_image_note.png "$D/ic_pack_image_note.png"
+          cp /tmp/waymark-icons/ic_land_site.png "$D/ic_pack_land_site.png"
+          cp /tmp/waymark-icons/ic_note.png "$D/ic_pack_note.png"
+          cp /tmp/waymark-icons/ic_reminders.png "$D/ic_pack_reminders.png"
+          cp /tmp/waymark-icons/ic_settings.png "$D/ic_pack_settings.png"
+          cp /tmp/waymark-icons/ic_voice_note.png "$D/ic_pack_voice_note.png"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -78,5 +99,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v7-corrections-apk
+          name: Waymark-v8-corrections-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
