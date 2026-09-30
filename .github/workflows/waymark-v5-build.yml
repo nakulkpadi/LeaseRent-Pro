@@ -1,4 +1,4 @@
-name: Build Waymark v6 APK
+name: Build Waymark v7 APK
 on:
   pull_request:
     branches: [main]
@@ -51,13 +51,14 @@ jobs:
           rm -f FieldKeepMVP/app/src/main/res/drawable/waymark_icon.png
           base64 -d waymark-v6-icon/waymark_icon.jpg.b64 > FieldKeepMVP/app/src/main/res/drawable/waymark_icon.jpg
 
-      - name: Package reconstructed v6 source
-        run: zip -qr Waymark-v6-reconstructed-source.zip FieldKeepMVP
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Waymark-v6-reconstructed-source
-          path: Waymark-v6-reconstructed-source.zip
+      - name: Apply v7 corrections
+        run: |
+          cat waymark-v7-patch/part_* > v6-to-v7.patch.gz.b64
+          test "$(wc -c < v6-to-v7.patch.gz.b64)" -eq 18004
+          base64 -d v6-to-v7.patch.gz.b64 > v6-to-v7.patch.gz
+          gunzip -c v6-to-v7.patch.gz > v6-to-v7.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v6-to-v7.patch
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -69,5 +70,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v6-ui-upgrade-apk
+          name: Waymark-v7-corrections-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
