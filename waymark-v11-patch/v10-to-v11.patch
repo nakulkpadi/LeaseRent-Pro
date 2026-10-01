@@ -1,0 +1,60 @@
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -10,8 +10,8 @@
+         applicationId = "com.nakuul.waymarkfieldnotes"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 7
+-        versionName = "0.7-corrections-test"
++        versionCode = 8
++        versionName = "0.8-verified-test"
+     }
+ 
+     buildTypes {
+--- a/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java
++++ b/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java
+@@ -50,7 +50,7 @@
+ 
+     @Override protected void onCreate(Bundle b){
+         super.onCreate(b);Ui.prepareWindow(this,true);
+-        page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);Ui.applySystemBarInsets(page,4,8);
++        grid=getSharedPreferences("waymark_ui",MODE_PRIVATE).getBoolean("grid_view",true);page=new FrameLayout(this);page.setBackgroundColor(Ui.BG);Ui.applySystemBarInsets(page,4,8);
+         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);
+         content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(Ui.dp(this,16),Ui.dp(this,6),Ui.dp(this,16),Ui.dp(this,118));scroll.addView(content);
+         page.addView(scroll,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+@@ -81,7 +81,7 @@
+         }else{
+             TextView title=new TextView(this);title.setText(screenTitle());title.setTextColor(Ui.INK);title.setTextSize(23);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setGravity(Gravity.CENTER_VERTICAL);row.addView(title,new LinearLayout.LayoutParams(0,Ui.dp(this,58),1));ImageView sr=Ui.lucide(this,R.drawable.ic_lucide_search,Ui.INK);sr.setContentDescription("Search");row.addView(sr,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,58)));sr.setOnClickListener(v->startActivity(new Intent(this,SearchActivity.class)));
+         }
+-        layoutToggle=Ui.lucide(this,grid?R.drawable.ic_lucide_list:R.drawable.ic_lucide_grid_2x2,Ui.INK);layoutToggle.setContentDescription(grid?"Switch to list view":"Switch to grid view");row.addView(layoutToggle,new LinearLayout.LayoutParams(Ui.dp(this,44),Ui.dp(this,58)));layoutToggle.setOnClickListener(v->{grid=!grid;rebuild();});
++        layoutToggle=Ui.lucide(this,grid?R.drawable.ic_lucide_list:R.drawable.ic_lucide_grid_2x2,Ui.INK);layoutToggle.setContentDescription(grid?"Switch to list view":"Switch to grid view");row.addView(layoutToggle,new LinearLayout.LayoutParams(Ui.dp(this,44),Ui.dp(this,58)));layoutToggle.setOnClickListener(v->{grid=!grid;getSharedPreferences("waymark_ui",MODE_PRIVATE).edit().putBoolean("grid_view",grid).apply();rebuild();});
+         ImageView sort=Ui.lucide(this,R.drawable.ic_lucide_arrow_up_down,Ui.INK);sort.setContentDescription("Sort");row.addView(sort,new LinearLayout.LayoutParams(Ui.dp(this,42),Ui.dp(this,58)));sort.setOnClickListener(v->{sortTitle=!sortTitle;Toast.makeText(this,sortTitle?"Sorted A–Z":"Sorted by recent",Toast.LENGTH_SHORT).show();rebuild();});
+         ImageView avatar=new ImageView(this);avatar.setImageResource(R.drawable.waymark_icon);avatar.setScaleType(ImageView.ScaleType.CENTER_CROP);avatar.setBackground(Ui.roundedStroke(Color.WHITE,23,Ui.LINE,this));avatar.setClipToOutline(true);LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(Ui.dp(this,44),Ui.dp(this,44));ap.leftMargin=Ui.dp(this,4);row.addView(avatar,ap);avatar.setOnClickListener(v->showAbout());
+         content.addView(row);
+--- a/app/src/main/java/com/nakuul/fieldkeep/CameraActivity.java
++++ b/app/src/main/java/com/nakuul/fieldkeep/CameraActivity.java
+@@ -106,7 +106,7 @@
+         siteName=getIntent().getStringExtra("site_name");address=getIntent().getStringExtra("address");if(address==null)address="";lat=getIntent().getDoubleExtra("lat",0);lon=getIntent().getDoubleExtra("lon",0);accuracy=getIntent().getDoubleExtra("accuracy",0);
+         io=Executors.newSingleThreadExecutor();BarcodeScannerOptions options=new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build();qrScanner=BarcodeScanning.getClient(options);
+         sensorManager=(SensorManager)getSystemService(SENSOR_SERVICE);if(sensorManager!=null)rotationSensor=sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+-        root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);Ui.applySystemBarInsets(root,0,0);
++        root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);Ui.applySystemBarInsets(root,0,8);
+         previewView=new PreviewView(this);previewView.setScaleType(PreviewView.ScaleType.FILL_CENTER);root.addView(previewView,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+         buildTop();buildStamp();buildBottom();setContentView(root);updateStamp();
+         previewView.setOnTouchListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_UP){String act=AppPrefs.tapAction(this);if("Photo Capture".equals(act)&&"photo".equals(currentMode))takePhoto();else if("Focus".equals(act))focus(e.getX(),e.getY());return true;}return true;});
+--- a/app/src/main/java/com/nakuul/fieldkeep/LocationPickerActivity.java
++++ b/app/src/main/java/com/nakuul/fieldkeep/LocationPickerActivity.java
+@@ -64,7 +64,12 @@
+         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(false);scroll.setClipToPadding(false);shell.addView(scroll,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
+         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(0,0,0,Ui.dp(this,40));scroll.addView(root,new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
+ 
+-        map=new WebView(this);map.setBackgroundColor(Color.rgb(220,235,225));map.setWebViewClient(new WebViewClient());WebSettings ws=map.getSettings();ws.setJavaScriptEnabled(true);ws.setDomStorageEnabled(true);ws.setBuiltInZoomControls(false);LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,390));mp.setMargins(Ui.dp(this,14),Ui.dp(this,10),Ui.dp(this,14),Ui.dp(this,8));root.addView(map,mp);
++        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,390));mp.setMargins(Ui.dp(this,14),Ui.dp(this,10),Ui.dp(this,14),Ui.dp(this,8));
++        try{
++            map=new WebView(this);map.setBackgroundColor(Color.rgb(220,235,225));map.setWebViewClient(new WebViewClient());WebSettings ws=map.getSettings();ws.setJavaScriptEnabled(true);ws.setDomStorageEnabled(true);ws.setBuiltInZoomControls(false);root.addView(map,mp);
++        }catch(Throwable e){
++            map=null;TextView fallback=Ui.body(this,"Map preview unavailable. Your GPS location can still be captured and opened in Google Maps.");fallback.setGravity(Gravity.CENTER);fallback.setPadding(Ui.dp(this,24),Ui.dp(this,24),Ui.dp(this,24),Ui.dp(this,24));fallback.setBackground(Ui.rounded(Color.rgb(232,240,247),14,this));root.addView(fallback,mp);
++        }
+ 
+         LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(Ui.dp(this,18),Ui.dp(this,10),Ui.dp(this,18),Ui.dp(this,20));panel.setBackgroundColor(Ui.BG);root.addView(panel,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
+         LinearLayout card=Ui.card(this);card.setPadding(Ui.dp(this,16),Ui.dp(this,14),Ui.dp(this,16),Ui.dp(this,14));LinearLayout current=new LinearLayout(this);current.setGravity(Gravity.CENTER_VERTICAL);
