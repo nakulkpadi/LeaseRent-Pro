@@ -1,4 +1,4 @@
-name: Build Waymark v11 APK
+name: Build Waymark v12 APK
 on:
   pull_request:
     branches: [main]
@@ -105,13 +105,23 @@ jobs:
           cd FieldKeepMVP
           patch -p1 < ../waymark-v11-patch/v10-to-v11.patch
 
-      - name: Package reconstructed v11 source
-        run: zip -qr Waymark-v11-reconstructed-source.zip FieldKeepMVP
+      - name: Apply v12 corrections
+        run: |
+          : > v11-to-v12.patch.gz.b64
+          cat waymark-v12-patch/chunks/part_* >> v11-to-v12.patch.gz.b64
+          test "$(wc -c < v11-to-v12.patch.gz.b64)" -eq 28388
+          base64 -d v11-to-v12.patch.gz.b64 > v11-to-v12.patch.gz
+          gunzip -c v11-to-v12.patch.gz > v11-to-v12.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v11-to-v12.patch
+
+      - name: Package reconstructed v12 source
+        run: zip -qr Waymark-v12-reconstructed-source.zip FieldKeepMVP
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v11-reconstructed-source
-          path: Waymark-v10-reconstructed-source.zip
+          name: Waymark-v12-reconstructed-source
+          path: Waymark-v12-reconstructed-source.zip
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -123,5 +133,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v11-verified-apk
+          name: Waymark-v12-corrections-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
