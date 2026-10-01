@@ -1,0 +1,107 @@
+--- a/app/src/main/java/com/nakuul/fieldkeep/NoteActivity.java
++++ b/app/src/main/java/com/nakuul/fieldkeep/NoteActivity.java
+@@ -50,7 +50,7 @@
+     private JSONObject note;
+     private String noteId;
+     private EditText title, body;
+-    private LinearLayout mediaBox;
++    private LinearLayout mediaBox, labelBox;
+     private FrameLayout page;
+     private boolean isNew;
+     private MediaRecorder recorder;
+@@ -83,7 +83,7 @@
+         }
+ 
+         page = new FrameLayout(this);
+-        page.setBackgroundColor(note.optInt("color", colors[0]));
++        page.setBackgroundColor(Ui.isDark(this)?Ui.BG:note.optInt("color", colors[0]));
+         Ui.applySystemBarInsets(page,6,8);
+ 
+         ScrollView scroll = new ScrollView(this);
+@@ -113,6 +113,11 @@
+         mediaBox.setOrientation(LinearLayout.VERTICAL);
+         root.addView(mediaBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+ 
++        labelBox = new LinearLayout(this);
++        labelBox.setOrientation(LinearLayout.HORIZONTAL);
++        labelBox.setGravity(Gravity.CENTER_VERTICAL);
++        root.addView(labelBox, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++
+         title = new EditText(this);
+         title.setHint("Title"); title.setHintTextColor(Color.rgb(180,170,164));
+         title.setTextColor(Ui.INK); title.setTextSize(27); title.setSingleLine(false);
+@@ -134,7 +139,7 @@
+         bottom.setOrientation(LinearLayout.HORIZONTAL);
+         bottom.setGravity(Gravity.CENTER_VERTICAL);
+         bottom.setPadding(Ui.dp(this,18), Ui.dp(this,8), Ui.dp(this,18), Ui.dp(this,12));
+-        bottom.setBackgroundColor(Color.argb(248, 255, 255, 255));
++        bottom.setBackgroundColor(Ui.isDark(this) ? Color.rgb(22,29,37) : Color.argb(248,255,255,255));
+         TextView add = Ui.iconButton(this,"＋"); add.setContentDescription("Add attachment");
+         TextView palette = Ui.iconButton(this,"🎨"); palette.setTextSize(20); palette.setContentDescription("Note color");
+         TextView fmt = Ui.iconButton(this,"Aa"); fmt.setTextSize(18); fmt.setContentDescription("Formatting"); fmt.setAlpha(.55f);
+@@ -150,6 +155,7 @@
+ 
+         setContentView(page);
+         rebuildMedia();
++        rebuildLabels();
+ 
+         back.setOnClickListener(v -> finish());
+         pin.setOnClickListener(v -> {
+@@ -187,6 +193,33 @@
+ 
+     @Override protected void onPause(){ if(recording) stopAudioRecording(); save(); super.onPause(); }
+ 
++    private void rebuildLabels() {
++        if (labelBox == null) return;
++        labelBox.removeAllViews();
++        JSONArray labels = note.optJSONArray("labels");
++        if (labels == null || labels.length() == 0) return;
++        HorizontalScrollView hsv = new HorizontalScrollView(this);
++        hsv.setHorizontalScrollBarEnabled(false);
++        LinearLayout row = new LinearLayout(this);
++        row.setOrientation(LinearLayout.HORIZONTAL);
++        row.setPadding(0, Ui.dp(this,6), 0, Ui.dp(this,2));
++        hsv.addView(row);
++        for (int i=0;i<labels.length();i++) {
++            String name=labels.optString(i);
++            TextView chip=new TextView(this);
++            chip.setText("●  "+name);
++            chip.setTextSize(12);
++            chip.setTextColor(Storage.labelColor(this,name));
++            chip.setGravity(Gravity.CENTER);
++            chip.setPadding(Ui.dp(this,11),0,Ui.dp(this,11),0);
++            chip.setBackground(Ui.roundedStroke(Ui.SURFACE,16,Storage.labelColor(this,name),this));
++            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,Ui.dp(this,32));
++            cp.rightMargin=Ui.dp(this,7);
++            row.addView(chip,cp);
++        }
++        labelBox.addView(hsv,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,40)));
++    }
++
+     private void rebuildMedia() {
+         mediaBox.removeAllViews();
+         JSONArray imgs=note.optJSONArray("images");
+@@ -269,7 +302,7 @@
+ 
+     private void cycleColor(){
+         int current=note.optInt("color",colors[0]),idx=0;for(int i=0;i<colors.length;i++)if(colors[i]==current){idx=i;break;}int next=colors[(idx+1)%colors.length];
+-        try{note.put("color",next);}catch(Exception ignored){} page.setBackgroundColor(next);save();
++        try{note.put("color",next);}catch(Exception ignored){} page.setBackgroundColor(Ui.isDark(this)?Ui.BG:next);save();
+     }
+ 
+     private void chooseReminder(){
+@@ -277,6 +310,7 @@
+         DatePickerDialog dp=new DatePickerDialog(this,(v,y,m,d)->{
+             TimePickerDialog tp=new TimePickerDialog(this,(tv,h,min)->{
+                 Calendar c=Calendar.getInstance();c.set(y,m,d,h,min,0);try{note.put("reminderAt",c.getTimeInMillis());}catch(Exception ignored){}save();
++                ReminderUtil.schedule(this,note);
+                 Toast.makeText(this,"Reminder saved for "+new SimpleDateFormat("dd MMM, h:mm a",Locale.getDefault()).format(c.getTime()),Toast.LENGTH_LONG).show();
+             },cal.get(Calendar.HOUR_OF_DAY),cal.get(Calendar.MINUTE),false);tp.show();
+         },cal.get(Calendar.YEAR),cal.get(Calendar.MONTH),cal.get(Calendar.DAY_OF_MONTH));dp.show();
+@@ -307,7 +341,7 @@
+         JSONArray labels=Storage.labels(this);
+         if(labels.length()==0){new AlertDialog.Builder(this).setTitle("No labels yet").setMessage("Create a label from the dashboard sidebar first.").setNegativeButton("Cancel",null).setPositiveButton("Create label",(d,w)->startActivity(new Intent(this,LabelsActivity.class))).show();return;}
+         String[] names=new String[labels.length()];boolean[] checked=new boolean[labels.length()];for(int i=0;i<labels.length();i++){names[i]=labels.optString(i);checked[i]=Storage.hasLabel(note,names[i]);}
+-        new AlertDialog.Builder(this).setTitle("Labels").setMultiChoiceItems(names,checked,(d,w,is)->checked[w]=is).setNegativeButton("Cancel",null).setPositiveButton("Save",(d,w)->{JSONArray a=new JSONArray();for(int i=0;i<names.length;i++)if(checked[i])a.put(names[i]);try{note.put("labels",a);}catch(Exception ignored){}save();}).show();
++        new AlertDialog.Builder(this).setTitle("Labels").setMultiChoiceItems(names,checked,(d,w,is)->checked[w]=is).setNegativeButton("Cancel",null).setPositiveButton("Save",(d,w)->{JSONArray a=new JSONArray();for(int i=0;i<names.length;i++)if(checked[i])a.put(names[i]);try{note.put("labels",a);}catch(Exception ignored){}save();rebuildLabels();}).show();
+     }
