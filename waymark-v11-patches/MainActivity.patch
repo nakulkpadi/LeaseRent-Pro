@@ -1,0 +1,11 @@
+--- a/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java
++++ b/app/src/main/java/com/nakuul/fieldkeep/MainActivity.java
+@@ -199,7 +199,7 @@
+         LinearLayout drawer=new LinearLayout(this);drawer.setOrientation(LinearLayout.VERTICAL);drawer.setBackgroundColor(Color.rgb(251,252,254));drawer.setPadding(Ui.dp(this,18),Ui.dp(this,12),Ui.dp(this,12),Ui.dp(this,22));drawer.setOnClickListener(v->{});FrameLayout.LayoutParams dp=new FrameLayout.LayoutParams((int)(getResources().getDisplayMetrics().widthPixels*.84f),ViewGroup.LayoutParams.MATCH_PARENT);dp.gravity=Gravity.LEFT;overlay.addView(drawer,dp);
+         LinearLayout brand=new LinearLayout(this);brand.setGravity(Gravity.CENTER_VERTICAL);ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.waymark_icon);logo.setScaleType(ImageView.ScaleType.CENTER_CROP);logo.setClipToOutline(true);logo.setBackground(Ui.rounded(Color.WHITE,12,this));brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,54),Ui.dp(this,54)));TextView b=new TextView(this);b.setText("Waymark\nField Notes");b.setTextColor(Ui.INK);b.setTextSize(19);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setPadding(Ui.dp(this,12),0,0,0);brand.addView(b);drawer.addView(brand,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,Ui.dp(this,78)));
+         addDrawerItem(drawer,R.drawable.ic_pack_note,"Notes",()->{mode=MODE_ALL;folderFilter="";labelFilter="";closeDrawer();rebuild();});
+-        addDrawerItem(drawer,R.drawable.ic_pack_reminders,"Reminders",()->{mode=MODE_REMINDERS;closeDrawer();rebuild();});
++        addDrawerItem(drawer,R.drawable.ic_pack_reminders,"Reminders",()->{closeDrawer();startActivity(new Intent(this,RemindersActivity.class));});
+         addDrawerItem(drawer,R.drawable.ic_pack_create_label,"Create new label",()->{closeDrawer();startActivity(new Intent(this,LabelsActivity.class));});
+         JSONArray labels=Storage.labels(this);for(int i=0;i<labels.length();i++){String name=labels.optString(i);addDrawerItem(drawer,R.drawable.ic_pack_create_label,name,()->{mode=MODE_LABEL;labelFilter=name;closeDrawer();rebuild();});}
+         addDrawerItem(drawer,R.drawable.ic_pack_archive,"Archive",()->{mode=MODE_ARCHIVE;closeDrawer();rebuild();});
