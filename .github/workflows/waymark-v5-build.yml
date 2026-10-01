@@ -1,4 +1,4 @@
-name: Build Waymark v11 APK
+name: Build Waymark v12 APK
 on:
   pull_request:
     branches: [main]
@@ -111,13 +111,22 @@ jobs:
           patch -p1 < ../waymark-v11-patches/NoteActivity.patch
           patch -p1 < ../waymark-v11-patches/MainActivity.patch
 
-      - name: Package reconstructed v11 source
-        run: zip -qr Waymark-v11-reconstructed-source.zip FieldKeepMVP
+      - name: Apply v12 reminders labels theme fixes
+        run: |
+          cat waymark-v12-patch/part_* > v11-to-v12.patch.gz.b64
+          test "$(wc -c < v11-to-v12.patch.gz.b64)" -eq 17488
+          base64 -d v11-to-v12.patch.gz.b64 > v11-to-v12.patch.gz
+          gunzip -c v11-to-v12.patch.gz > v11-to-v12.patch
+          cd FieldKeepMVP
+          patch -p2 < ../v11-to-v12.patch
+
+      - name: Package reconstructed v12 source
+        run: zip -qr Waymark-v12-reconstructed-source.zip FieldKeepMVP
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v11-reconstructed-source
-          path: Waymark-v11-reconstructed-source.zip
+          name: Waymark-v12-reconstructed-source
+          path: Waymark-v12-reconstructed-source.zip
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -129,5 +138,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v11-reminders-labels-theme-apk
+          name: Waymark-v12-reminders-labels-theme-fixed-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
