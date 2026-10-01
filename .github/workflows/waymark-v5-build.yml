@@ -1,4 +1,4 @@
-name: Build Waymark v9 APK
+name: Build Waymark v10 APK
 on:
   pull_request:
     branches: [main]
@@ -84,13 +84,27 @@ jobs:
           cd FieldKeepMVP
           patch -p1 < ../v8-to-v9.patch
 
-      - name: Package reconstructed v9 source
-        run: zip -qr Waymark-v9-reconstructed-source.zip FieldKeepMVP
+      - name: Apply v10 corrections
+        run: |
+          test "$(wc -c < waymark-v10-patch/v9-to-v10.patch.gz.b64)" -eq 19896
+          base64 -d waymark-v10-patch/v9-to-v10.patch.gz.b64 > v9-to-v10.patch.gz
+          gunzip -c v9-to-v10.patch.gz > v9-to-v10.patch
+          cd FieldKeepMVP
+          patch -p1 < ../v9-to-v10.patch
+
+      - name: Install uploaded Create new label icon
+        run: |
+          test "$(wc -c < waymark-v10-icons/create_new_label.png.b64)" -eq 18636
+          base64 -d waymark-v10-icons/create_new_label.png.b64 > FieldKeepMVP/app/src/main/res/drawable/ic_pack_create_label.png
+          file FieldKeepMVP/app/src/main/res/drawable/ic_pack_create_label.png
+
+      - name: Package reconstructed v10 source
+        run: zip -qr Waymark-v10-reconstructed-source.zip FieldKeepMVP
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v9-reconstructed-source
-          path: Waymark-v9-reconstructed-source.zip
+          name: Waymark-v10-reconstructed-source
+          path: Waymark-v10-reconstructed-source.zip
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -102,5 +116,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Waymark-v9-ui-corrections-apk
+          name: Waymark-v10-corrections-apk
           path: FieldKeepMVP/app/build/outputs/apk/debug/app-debug.apk
